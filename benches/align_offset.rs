@@ -1,14 +1,19 @@
 
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use bench_align_offset::{ver1, ver2};
+use bench_align_offset::{align_offset_old, align_offset_new};
 
 fn bench_align_offset(c: &mut Criterion) {
     let mut group = c.benchmark_group("args");
-    for i in [20u64, 21u64].iter() {
-        group.bench_with_input(BenchmarkId::new("old", i), i, 
-            |b, i| b.iter(|| ver1(*i)));
-        group.bench_with_input(BenchmarkId::new("new", i), i, 
-            |b, i| b.iter(|| ver2(*i)));
+    for p in [1usize, 3, 37].iter() {
+        for stride in [3usize, 8, 10].iter() {
+            for align in [1usize, 2, 4, 8, 16, 32, 64, 128, 256, 512].iter() {
+                let tup = (*p, *stride, *align);
+                group.bench_with_input(BenchmarkId::new("old", format!("{:?}", tup)), &tup,
+                    |b, i| b.iter(|| unsafe { align_offset_old(i.0, i.1, i.2) }));
+                group.bench_with_input(BenchmarkId::new("new", format!("{:?}", tup)), &tup,
+                    |b, i| b.iter(|| unsafe { align_offset_new(i.0, i.1, i.2) }));
+            }
+        }
     }
     group.finish();
 }
