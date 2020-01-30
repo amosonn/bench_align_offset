@@ -1,6 +1,6 @@
-use core::{mem, intrinsics};
+use core::intrinsics;
 
-pub unsafe fn align_offset<T: Sized>(p: *const T, a: usize) -> usize {
+pub unsafe fn align_offset(p: usize, stride: usize, a: usize) -> usize {
     /// Calculate multiplicative modular inverse of `x` modulo `m`.
     ///
     /// This implementation is tailored for align_offset and has following preconditions:
@@ -49,9 +49,8 @@ pub unsafe fn align_offset<T: Sized>(p: *const T, a: usize) -> usize {
         }
     }
 
-    let stride = mem::size_of::<T>();
     let a_minus_one = a.wrapping_sub(1);
-    let pmoda = p as usize & a_minus_one;
+    let pmoda = p & a_minus_one;
 
     if pmoda == 0 {
         // Already aligned. Yay!
