@@ -1,16 +1,16 @@
 
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use bench_align_offset::{align_offset_old, align_offset_new};
+use bench_align_offset::ALIGN_OFFSET_FNS;
 
 fn bench_align_offset(c: &mut Criterion) {
     let mut group = c.benchmark_group("args");
     for (p, stride) in [(8usize, 24usize)].iter() {
-        for align in [16usize, 32, 64, 128, 256, 512, 1024, 2048, 4096, 1<<17, 1<<20].iter() {
-            let tup = (*p, *stride, *align);
-            group.bench_with_input(BenchmarkId::new("old", format!("{:?}", tup)), &tup,
-                |b, i| b.iter(|| unsafe { align_offset_old(i.0, i.1, i.2) }));
-            group.bench_with_input(BenchmarkId::new("new", format!("{:?}", tup)), &tup,
-                |b, i| b.iter(|| unsafe { align_offset_new(i.0, i.1, i.2) }));
+        for align in [16usize, 128, 256, 512, 2048, 4096, 1<<17, 1<<20].iter() {
+            let args = (*p, *stride, *align);
+            for i in 0..ALIGN_OFFSET_FNS.len() {
+                group.bench_with_input(BenchmarkId::new(format!("align_offset_v{}", i), format!("{:?}", args)), &args,
+                    |b, args| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](args.0, args.1, args.2) }));
+            }
         }
     }
     group.finish();

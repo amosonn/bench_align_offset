@@ -1,10 +1,24 @@
 #![feature(core_intrinsics)]
 
-mod new;
-mod old;
+mod v0;
+mod v1;
+mod v2;
+mod v3;
+mod v4;
 
-pub use new::align_offset as align_offset_new;
-pub use old::align_offset as align_offset_old;
+pub use v0::align_offset as align_offset_v0;
+pub use v1::align_offset as align_offset_v1;
+pub use v2::align_offset as align_offset_v2;
+pub use v3::align_offset as align_offset_v3;
+pub use v4::align_offset as align_offset_v4;
+
+pub const ALIGN_OFFSET_FNS: [unsafe fn(usize, usize, usize) -> usize; 5] = [
+    align_offset_v0,
+    align_offset_v1,
+    align_offset_v2,
+    align_offset_v3,
+    align_offset_v4,
+];
 
 #[test]
 fn align_offset_weird_strides() {
@@ -17,23 +31,16 @@ fn align_offset_weird_strides() {
                 break;
             }
         }
-        let got1 = align_offset_old(ptr, stride, align);
-        let got2 = align_offset_new(ptr, stride, align);
         let mut ret = false;
-
-        if got1 != expected {
-            eprintln!(
-                "old: aligning {:x} (with stride of {}) to {}, expected {}, got {}",
-                ptr, stride, align, expected, got1
-            );
-            ret |= true;
-        }
-        if got2 != expected {
-            eprintln!(
-                "new: aligning {:x} (with stride of {}) to {}, expected {}, got {}",
-                ptr, stride, align, expected, got2
-            );
-            ret |= true;
+        for i in 0..ALIGN_OFFSET_FNS.len() {
+            let got = ALIGN_OFFSET_FNS[i](ptr, stride, align);
+            if got != expected {
+                eprintln!(
+                    "align_offset_v{}: aligning {:x} (with stride of {}) to {}, expected {}, got {}",
+                    i, ptr, stride, align, expected, got
+                );
+                ret |= true;
+            }
         }
         return ret;
     }
