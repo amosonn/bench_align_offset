@@ -1,22 +1,55 @@
-
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use bench_align_offset::ALIGN_OFFSET_FNS;
+use criterion::{black_box as bb, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 fn bench_align_offset(c: &mut Criterion) {
     let mut group = c.benchmark_group("args");
-    for (p, stride) in [(8usize, 24usize)].iter() {
-        for align in [16usize, 128, 256, 512, 2048, 4096, 1<<17, 1<<20].iter() {
-            let args = (*p, *stride, *align);
+    for (p, stride) in [(8usize, 24usize)].iter().copied() {
+        for align in [16usize, 128, 256, 512, 2048, 4096, 1 << 17, 1 << 20]
+            .iter()
+            .copied()
+        {
             for i in 0..ALIGN_OFFSET_FNS.len() {
-                group.bench_with_input(BenchmarkId::new(format!("align_offset_v{}", i), format!("{:?}", args)), &args,
-                    |b, args| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](args.0, args.1, args.2) }));
+                group.bench_function(
+                    BenchmarkId::new(
+                        format!("align_offset_v{}", i),
+                        format!("({}, {}, {})", p, stride, align),
+                    ),
+                    |b| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](bb(p), bb(stride), bb(align)) }),
+                );
+            }
+            for i in 0..ALIGN_OFFSET_FNS.len() {
+                group.bench_function(
+                    BenchmarkId::new(
+                        format!("align_offset_v{}", i),
+                        format!("({}, {}, {}*)", p, stride, align),
+                    ),
+                    |b| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](bb(p), bb(stride), align) }),
+                );
+            }
+            for i in 0..ALIGN_OFFSET_FNS.len() {
+                group.bench_function(
+                    BenchmarkId::new(
+                        format!("align_offset_v{}", i),
+                        format!("({}, {}*, {})", p, stride, align),
+                    ),
+                    |b| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](bb(p), stride, bb(align)) }),
+                );
+            }
+            for i in 0..ALIGN_OFFSET_FNS.len() {
+                group.bench_function(
+                    BenchmarkId::new(
+                        format!("align_offset_v{}", i),
+                        format!("({}, {}*, {}*)", p, stride, align),
+                    ),
+                    |b| b.iter(|| unsafe { ALIGN_OFFSET_FNS[i](bb(p), stride, align) }),
+                );
             }
         }
     }
     group.finish();
 }
 
-criterion_group!{
+criterion_group! {
     name = benches;
     config = Criterion::default()
         .warm_up_time(core::time::Duration::new(1, 0))
